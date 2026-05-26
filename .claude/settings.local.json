@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker exec *)",
+      "Bash(curl -s -o /dev/null -w \"local %{http_code}  tunnel \" http://localhost:8045/mcp/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" https://7090b56086021f7b-200-106-187-254.serveousercontent.com/mcp/)",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec google-ads-mcp-google-ads-mcp-1 *)",
+      "Bash(docker compose *)"
+    ]
+  }
+}

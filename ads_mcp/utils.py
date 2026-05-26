@@ -41,17 +41,26 @@ _READ_ONLY_ADS_SCOPE = "https://www.googleapis.com/auth/adwords"
 
 
 def _create_credentials() -> google.auth.credentials.Credentials:
-    """Returns Application Default Credentials with read-only scope or FastMCP token if found."""
-    from fastmcp.server.dependencies import get_access_token
     from google.oauth2.credentials import Credentials
 
-    token_obj = get_access_token()
-    if token_obj and token_obj.token:
-        # Create credentials using the access token provided by FastMCP
-        return Credentials(token=token_obj.token)
+    # Try FastMCP token first (for OAuth proxy mode)
+    try:
+        from fastmcp.server.dependencies import get_access_token
+        token_obj = get_access_token()
+        if token_obj and token_obj.token:
+            return Credentials(token=token_obj.token)
+    except Exception:
+        pass
 
-    credentials, _ = google.auth.default(scopes=[_READ_ONLY_ADS_SCOPE])
-    return credentials
+    # Use OAuth2 refresh token credentials
+    return Credentials(
+        token=None,
+        refresh_token=os.environ.get("GOOGLE_ADS_REFRESH_TOKEN"),
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=os.environ.get("GOOGLE_ADS_CLIENT_ID"),
+        client_secret=os.environ.get("GOOGLE_ADS_CLIENT_SECRET"),
+        scopes=[_READ_ONLY_ADS_SCOPE],
+    )
 
 
 def _get_developer_token() -> str:

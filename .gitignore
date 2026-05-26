@@ -4,6 +4,9 @@
 .python-version
 .gemini
 .vscode
+.env
+google-ads.yaml
+serveo.pub
 
 # Distribution / packaging
 .Python

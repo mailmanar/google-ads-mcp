@@ -20,26 +20,31 @@ from ads_mcp.coordinator import mcp
 # object, even though they are not directly used in this file.
 # The `# noqa: F401` comment tells the linter to ignore the "unused import"
 # warning.
-from ads_mcp.tools import search, core, get_resource_metadata  # noqa: F401
-from ads_mcp.resources import (
+from ads_mcp.tools import (  # noqa: F401
+    core,
+    get_resource_metadata,
+    search,
+    write,
+    write_assets,
+    write_audiences,
+    write_hierarchy,
+    write_targeting,
+)
+from ads_mcp.resources import (  # noqa: F401
     discovery,
     metrics,
     release_notes,
     segments,
-)  # noqa: F401
-
+)
 
 import os
 
 
 def run_server() -> None:
-    _CLIENT_ID = os.environ.get("GOOGLE_ADS_MCP_OAUTH_CLIENT_ID")
-    _CLIENT_SECRET = os.environ.get("GOOGLE_ADS_MCP_OAUTH_CLIENT_SECRET")
-
-    if _CLIENT_ID and _CLIENT_SECRET:
-        mcp.run(transport="streamable-http")
-    else:
-        mcp.run()
+    rt = os.environ.get("GOOGLE_ADS_REFRESH_TOKEN") or ""
+    rt_tail = rt[-6:] if rt else "<not set>"
+    print(f"[startup] GOOGLE_ADS_REFRESH_TOKEN tail=...{rt_tail} len={len(rt)}", flush=True)
+    mcp.run(transport="streamable-http", host="0.0.0.0", port=8045)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,10 @@
+version: "3.8"
+
+services:
+  google-ads-mcp:
+    build: .
+    ports:
+      - "8045:8045"
+    env_file:
+      - .env
+    command: ["python", "-m", "ads_mcp.server", "--transport", "streamable-http", "--port", "8045", "--host", "0.0.0.0"]
