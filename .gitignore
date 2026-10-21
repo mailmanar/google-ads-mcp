@@ -40,3 +40,6 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 .nox/
+# Local dev
+.venv/
+.env.bak

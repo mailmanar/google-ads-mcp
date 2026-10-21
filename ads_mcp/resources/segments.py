@@ -17,6 +17,7 @@
 import urllib.request
 
 from ads_mcp.coordinator import mcp
+from ads_mcp import utils
 
 
 @mcp.resource(
@@ -36,7 +37,7 @@ def get_segments() -> str:
     Returns:
         str: The segments documentation in HTML format.
     """
-    url = "https://developers.google.com/google-ads/api/fields/latest/segments"
+    url = f"https://developers.google.com/google-ads/api/fields/{utils.API_VERSION}/segments"
     req = urllib.request.Request(
         url,
         headers={"User-Agent": "Mozilla/5.0"},

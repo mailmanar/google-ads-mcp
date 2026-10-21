@@ -20,7 +20,7 @@ from typing import Any
 import proto
 import logging
 from google.ads.googleads.client import GoogleAdsClient
-from google.ads.googleads.v23.services.services.google_ads_service import (
+from google.ads.googleads.v26.services.services.google_ads_service import (
     GoogleAdsServiceClient,
 )
 
@@ -29,6 +29,10 @@ import google.auth
 from ads_mcp.mcp_header_interceptor import MCPHeaderInterceptor
 import os
 import importlib.resources
+
+# Google Ads API version every call uses. Keep in step with the google-ads
+# pin in pyproject.toml, and regenerate gaql_resources.txt when changing it.
+API_VERSION = "v26"
 
 # filename for generated field information used by search
 _GAQL_FILENAME = "gaql_resources.txt"
@@ -83,6 +87,7 @@ def _get_googleads_client() -> GoogleAdsClient:
         "credentials": _create_credentials(),
         "developer_token": _get_developer_token(),
         "use_proto_plus": True,
+        "version": API_VERSION,
     }
 
     # If the login-customer-id is not set, avoid setting None.
@@ -103,7 +108,7 @@ def get_googleads_service(serviceName: str) -> GoogleAdsServiceClient:
 
 
 def get_googleads_type(typeName: str):
-    return _get_googleads_client().get_type(typeName)
+    return _get_googleads_client().get_type(typeName, version=API_VERSION)
 
 
 def get_googleads_client():

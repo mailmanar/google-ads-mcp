@@ -17,6 +17,7 @@
 import urllib.request
 
 from ads_mcp.coordinator import mcp
+from ads_mcp import utils
 
 
 @mcp.resource(
@@ -36,7 +37,7 @@ def get_metrics() -> str:
     Returns:
         str: The metrics documentation in HTML format.
     """
-    url = "https://developers.google.com/google-ads/api/fields/latest/metrics"
+    url = f"https://developers.google.com/google-ads/api/fields/{utils.API_VERSION}/metrics"
     req = urllib.request.Request(
         url,
         headers={"User-Agent": "Mozilla/5.0"},
