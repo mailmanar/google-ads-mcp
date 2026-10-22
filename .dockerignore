@@ -1,0 +1,18 @@
+# Secrets: passed at runtime via env_file, never baked into the image
+.env
+.env.*
+google-ads.yaml
+serveo
+serveo.pub
+
+# Local dev and VCS
+.venv/
+.git/
+.github/
+.claude/
+.vscode/
+.idea/
+tasks/
+tests/
+**/__pycache__/
+*.pyc

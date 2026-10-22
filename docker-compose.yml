@@ -1,10 +1,10 @@
-version: "3.8"
-
 services:
   google-ads-mcp:
     build: .
+    restart: unless-stopped
+    # Loopback only: the server has no auth of its own. Reach it through an
+    # SSH tunnel (ssh -N -L 8045:localhost:8045 ...), never a public port.
     ports:
-      - "8045:8045"
+      - "127.0.0.1:8045:8045"
     env_file:
       - .env
-    command: ["python", "-m", "ads_mcp.server", "--transport", "streamable-http", "--port", "8045", "--host", "0.0.0.0"]
