@@ -221,6 +221,101 @@ def remove_campaign_budget(
         return {"success": False, "error": str(ex)}
 
 
+@mcp.tool()
+def update_campaign_budget(
+    customer_id: str,
+    campaign_id: str,
+    amount_micros: int,
+    allow_shared: bool = False,
+    validate_only: bool = False,
+) -> dict:
+    """
+    Changes the daily amount of the budget an existing campaign uses.
+
+    Looks up the campaign's budget and updates its amount in place. If that
+    budget is shared with other campaigns, the change would affect all of
+    them, so the call is refused unless allow_shared=True.
+
+    Args:
+        customer_id: Google Ads customer ID (no dashes).
+        campaign_id: Campaign whose budget to change.
+        amount_micros: New daily amount in micros (1_000_000 micros = 1 unit
+            of the account currency).
+        allow_shared: Set True to change a budget shared by several campaigns.
+        validate_only: Set True to have Google validate the change without
+            applying it.
+
+    Returns:
+        dict with the budget's resource_name and previous/new amount on success.
+    """
+    if err := check_read_only():
+        return err
+    if err := check_max_budget(amount_micros):
+        return err
+    if amount_micros <= 0:
+        return {"success": False, "error": "amount_micros must be > 0."}
+
+    try:
+        client = get_googleads_client()
+        ga_service = client.get_service("GoogleAdsService")
+        query = (
+            "SELECT campaign.name, campaign_budget.resource_name, "
+            "campaign_budget.amount_micros, campaign_budget.explicitly_shared, "
+            "campaign_budget.reference_count "
+            f"FROM campaign WHERE campaign.id = {int(campaign_id)}"
+        )
+        rows = list(ga_service.search(customer_id=customer_id, query=query))
+        if not rows:
+            return {
+                "success": False,
+                "error": f"Campaign {campaign_id} not found in {customer_id}.",
+            }
+        campaign_name = rows[0].campaign.name
+        budget = rows[0].campaign_budget
+        if budget.reference_count > 1 and not allow_shared:
+            return {
+                "success": False,
+                "error": (
+                    f"Budget {budget.resource_name} is shared by "
+                    f"{budget.reference_count} campaigns; changing it changes "
+                    "all of them. Pass allow_shared=True to proceed."
+                ),
+            }
+
+        service = client.get_service("CampaignBudgetService")
+        op = client.get_type("CampaignBudgetOperation")
+        op.update.resource_name = budget.resource_name
+        op.update.amount_micros = amount_micros
+
+        from google.protobuf import field_mask_pb2
+
+        op.update_mask.CopyFrom(field_mask_pb2.FieldMask(paths=["amount_micros"]))
+
+        request = client.get_type("MutateCampaignBudgetsRequest")
+        request.customer_id = customer_id
+        request.operations.append(op)
+        request.validate_only = validate_only
+        service.mutate_campaign_budgets(request=request)
+        return {
+            "success": True,
+            "resource_name": budget.resource_name,
+            "campaign": campaign_name,
+            "previous_amount_micros": budget.amount_micros,
+            "new_amount_micros": amount_micros,
+            "shared_by_campaigns": budget.reference_count,
+            "validate_only": validate_only,
+            "message": (
+                f"Budget for '{campaign_name}' "
+                + ("would change" if validate_only else "changed")
+                + f" from {budget.amount_micros} to {amount_micros} micros/day."
+            ),
+        }
+    except GoogleAdsException as ex:
+        return handle_googleads_exception(ex)
+    except Exception as ex:
+        return {"success": False, "error": str(ex)}
+
+
 _VALID_EU_POLITICAL = {
     "CONTAINS_EU_POLITICAL_ADVERTISING",
     "DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING",
