@@ -29,6 +29,7 @@ _DEMAND_GEN_BIDDING_STRATEGIES = {
     "TARGET_CPA",
     "TARGET_ROAS",
     "TARGET_SPEND",
+    "TARGET_CPC",
 }
 
 # Fields of AdGroup.DemandGenAdGroupSettings.DemandGenChannelControls
@@ -77,6 +78,7 @@ def create_demand_gen_video_campaign(
     target_cpa_micros: Optional[int] = None,
     target_roas: Optional[float] = None,
     target_spend_micros: Optional[int] = None,
+    target_cpc_micros: Optional[int] = None,
     contains_eu_political_advertising: str = "DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING",
     validate_only: bool = False,
 ) -> dict:
@@ -120,13 +122,15 @@ def create_demand_gen_video_campaign(
         language_constants: Languages to target, e.g.
             ['languageConstants/1003'] for Spanish. Omit to target all.
         bidding_strategy_type: MAXIMIZE_CONVERSIONS (default),
-            MAXIMIZE_CONVERSION_VALUE, TARGET_CPA, TARGET_ROAS or TARGET_SPEND
-            (maximize clicks).
+            MAXIMIZE_CONVERSION_VALUE, TARGET_CPA, TARGET_ROAS, TARGET_SPEND
+            (maximize clicks) or TARGET_CPC (clicks at a target average CPC).
         target_cpa_micros: Required for TARGET_CPA, optional for
             MAXIMIZE_CONVERSIONS.
         target_roas: Required for TARGET_ROAS, optional for
             MAXIMIZE_CONVERSION_VALUE.
         target_spend_micros: Optional max CPC for TARGET_SPEND.
+        target_cpc_micros: Required for TARGET_CPC: the average CPC target
+            (0.20 USD = 200000).
         contains_eu_political_advertising: As in create_campaign.
         validate_only: When True, Google validates the whole request without
             creating anything. Use it to check before creating for real.
@@ -167,6 +171,11 @@ def create_demand_gen_video_campaign(
                 f"bidding_strategy_type must be one of "
                 f"{sorted(_DEMAND_GEN_BIDDING_STRATEGIES)} for Demand Gen."
             ),
+        }
+    if bidding_strategy_type == "TARGET_CPC" and not target_cpc_micros:
+        return {
+            "success": False,
+            "error": "TARGET_CPC requires target_cpc_micros > 0.",
         }
     channels = channels or _YOUTUBE_CHANNELS
     unknown = set(channels) - set(_ALL_CHANNELS)
@@ -235,15 +244,18 @@ def create_demand_gen_video_campaign(
         campaign.contains_eu_political_advertising = (
             contains_eu_political_advertising
         )
-        bid_err = _set_bidding_strategy(
+        if bidding_strategy_type == "TARGET_CPC":
+            # Demand Gen only; _set_bidding_strategy serves the other
+            # campaign types, which do not accept TargetCpc.
+            campaign.target_cpc.target_cpc_micros = target_cpc_micros
+        elif bid_err := _set_bidding_strategy(
             client,
             campaign,
             bidding_strategy_type,
             target_cpa_micros,
             target_roas,
             target_spend_micros,
-        )
-        if bid_err:
+        ):
             return bid_err
         operations.append(op)
 
