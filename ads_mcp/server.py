@@ -30,6 +30,7 @@ from ads_mcp.tools import (  # noqa: F401
     write_demand_gen,
     write_hierarchy,
     write_targeting,
+    write_youtube,
 )
 from ads_mcp.resources import (  # noqa: F401
     discovery,
