@@ -85,3 +85,10 @@ Adding mutate/write capabilities to the Google Ads MCP, beyond the existing RSA 
 - Ad-group level extensions
 - Geo lookup by name (caller passes constants)
 - Bulk / batched mutates across services
+
+## YouTube video campaigns via Demand Gen (feat/demand-gen-video-campaign)
+
+- [x] Confirmed the API cannot create VIDEO campaigns (Google docs, Oct 2026); Demand Gen is the supported path.
+- [x] `create_demand_gen_video_campaign`: budget + DEMAND_GEN campaign (PAUSED) + ad group with YouTube-only channel controls + geo/language + YouTube video asset + logo (existing asset or URL) + DemandGenVideoResponsiveAd, in one atomic GoogleAdsService.Mutate. Supports validate_only.
+- [x] Verified with validate_only on 1893155347 for video 0cpMc-7RFu8 with both logo paths. A fake video ID is rejected with VIDEO_NOT_FOUND.
+- [ ] Not verified: a real (non-validate) create, and call_to_actions / breadcrumbs (not exposed yet).

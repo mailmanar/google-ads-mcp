@@ -27,6 +27,7 @@ from ads_mcp.tools import (  # noqa: F401
     write,
     write_assets,
     write_audiences,
+    write_demand_gen,
     write_hierarchy,
     write_targeting,
 )
