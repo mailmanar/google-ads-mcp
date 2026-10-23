@@ -92,3 +92,9 @@ Adding mutate/write capabilities to the Google Ads MCP, beyond the existing RSA 
 - [x] `create_demand_gen_video_campaign`: budget + DEMAND_GEN campaign (PAUSED) + ad group with YouTube-only channel controls + geo/language + YouTube video asset + logo (existing asset or URL) + DemandGenVideoResponsiveAd, in one atomic GoogleAdsService.Mutate. Supports validate_only.
 - [x] Verified with validate_only on 1893155347 for video 0cpMc-7RFu8 with both logo paths. A fake video ID is rejected with VIDEO_NOT_FOUND.
 - [ ] Not verified: a real (non-validate) create, and call_to_actions / breadcrumbs (not exposed yet).
+
+## YouTube video upload (feat/youtube-video-upload)
+
+- [x] `upload_youtube_video`: downloads a video from a link (Drive share links converted to direct downloads), uploads it via YouTubeVideoUploadService (Google-managed channel by default, UNLISTED), waits for PROCESSED and returns the video ID.
+- [x] Verified: tool registers (29), Drive URL conversion, status query on you_tube_video_upload, HTML-page rejection, request built correctly with the upload RPC stubbed.
+- [ ] Not verified: a real upload to YouTube.
