@@ -823,3 +823,124 @@ def add_custom_audience_targets(
         return handle_googleads_exception(ex)
     except Exception as ex:
         return {"success": False, "error": str(ex)}
+
+
+@mcp.tool()
+def set_ad_group_audience(
+    customer_id: str,
+    ad_group_id: str,
+    audience_resource_name: str,
+    replace_existing: bool = False,
+    validate_only: bool = False,
+) -> dict:
+    """
+    Targets an ad group at an Audience: the combined audience object built in
+    Google Ads' audience manager (segments + demographics + exclusions), as
+    opposed to a single user list. Demand Gen ad groups only accept this kind
+    of audience; add_audience_targets (user lists) is rejected there.
+
+    An ad group holds one Audience. Discover them via the search tool:
+        SELECT audience.resource_name, audience.name, audience.status
+        FROM audience WHERE audience.status = 'ENABLED'
+
+    Args:
+        customer_id: Google Ads customer ID.
+        ad_group_id: Ad group to target.
+        audience_resource_name: e.g. 'customers/123/audiences/456'.
+        replace_existing: When the ad group already has an Audience, swap it
+            for this one (in one atomic request). Without it, the tool refuses
+            and reports the current one.
+        validate_only: When True, Google validates without changing anything.
+
+    Returns:
+        dict with the created criterion resource name.
+    """
+    if err := check_read_only():
+        return err
+
+    if (
+        not isinstance(audience_resource_name, str)
+        or "/audiences/" not in audience_resource_name
+    ):
+        return {
+            "success": False,
+            "error": (
+                "audience_resource_name must look like "
+                f"'customers/N/audiences/M', got: {audience_resource_name!r}"
+            ),
+        }
+
+    try:
+        client = get_googleads_client()
+        ad_group_rn = client.get_service("AdGroupService").ad_group_path(
+            customer_id, ad_group_id
+        )
+        query = (
+            "SELECT ad_group_criterion.resource_name, "
+            "ad_group_criterion.audience.audience "
+            "FROM ad_group_criterion "
+            f"WHERE ad_group.id = {int(ad_group_id)} "
+            "AND ad_group_criterion.type = 'AUDIENCE' "
+            "AND ad_group_criterion.status != 'REMOVED'"
+        )
+        existing = [
+            row.ad_group_criterion
+            for row in client.get_service("GoogleAdsService").search(
+                customer_id=customer_id, query=query
+            )
+        ]
+        if any(c.audience.audience == audience_resource_name for c in existing):
+            return {
+                "success": True,
+                "message": "The ad group already targets this audience.",
+            }
+        if existing and not replace_existing:
+            return {
+                "success": False,
+                "error": (
+                    "The ad group already targets "
+                    f"{[c.audience.audience for c in existing]}. Pass "
+                    "replace_existing=True to swap it."
+                ),
+            }
+
+        operations = []
+        for criterion in existing:
+            op = client.get_type("AdGroupCriterionOperation")
+            op.remove = criterion.resource_name
+            operations.append(op)
+        op = client.get_type("AdGroupCriterionOperation")
+        crit = op.create
+        crit.ad_group = ad_group_rn
+        crit.audience.audience = audience_resource_name
+        operations.append(op)
+
+        request = client.get_type("MutateAdGroupCriteriaRequest")
+        request.customer_id = customer_id
+        request.operations = operations
+        request.validate_only = validate_only
+        response = client.get_service(
+            "AdGroupCriterionService"
+        ).mutate_ad_group_criteria(request=request)
+
+        replaced = [c.audience.audience for c in existing]
+        if validate_only:
+            return {
+                "success": True,
+                "validate_only": True,
+                "replaced": replaced,
+                "message": (
+                    f"Valid: would target {audience_resource_name} on ad "
+                    f"group {ad_group_id}. Nothing was changed."
+                ),
+            }
+        return {
+            "success": True,
+            "resource_name": response.results[-1].resource_name,
+            "replaced": replaced,
+            "message": f"Ad group {ad_group_id} now targets {audience_resource_name}.",
+        }
+    except GoogleAdsException as ex:
+        return handle_googleads_exception(ex)
+    except Exception as ex:
+        return {"success": False, "error": str(ex)}
